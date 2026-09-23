@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>裂罅熔接计算器 · Warframe 紫卡新机制</title>
+<meta name="description" content="Warframe 紫卡（裂罅 Mod）新机制：二合一熔接属性计算器、属性锁定与熔接机制介绍、洗卡收益最大化教程。">
+<link rel="stylesheet" href="style.css?v=20260924d">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="logo">◈ 裂罅熔接</span>
+    <div class="nav-links">
+      <a href="#calc">熔接计算器</a>
+      <a href="#mech">机制介绍</a>
+      <a href="#core">核心规则</a>
+      <a href="#tutorial">洗卡教程</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <div class="badge-line">
+      <span class="badge b-purple">《Narin 的冰刃》</span>
+      <span class="badge b-cyan">《冰川反抗》</span>
+    </div>
+    <h1 class="hero-title">裂罅熔接计算器</h1>
+    <p class="hero-sub">选两个词条，一键算出熔接结果——<br>官方完整熔接表 + 新机制全解 + 洗卡收益最大化教程</p>
+    <div class="hero-cta">
+      <a href="#calc" class="btn btn-primary">开始计算</a>
+      <a href="#tutorial" class="btn btn-ghost">先看教程</a>
+    </div>
+  </div>
+  <div class="scroll-hint">↓</div>
+</header>
+
+<!-- ============ CALCULATOR ============ -->
+<section id="calc" class="section reveal">
+  <h2 class="sec-title">熔接计算器</h2>
+  <p class="sec-desc">双模式：<strong>正向</strong>选两个词条算熔接结果，<strong>反向</strong>输入融合属性查需要什么词条。熔接只吃<strong>两条</strong>词条，产出<strong>一条融合词条</strong>。</p>
+
+  <div class="calc-card">
+    <div class="mode-row">
+      <button class="mode-btn on" data-mode="fwd">⚗️ 正向熔接</button>
+      <button class="mode-btn" data-mode="rev">🔎 反向查询</button>
+      <span class="mode-note" id="modeNote">选词条 → 算熔接结果</span>
+    </div>
+
+    <div class="weapon-row">
+      <span class="wp-label">武器类型</span>
+      <div class="wp-toggle" id="wpToggle">
+        <button class="wp-btn on" data-wp="all">全部</button>
+        <button class="wp-btn" data-wp="gun">枪械</button>
+        <button class="wp-btn" data-wp="melee">近战</button>
+      </div>
+      <span class="wp-note">按武器类型过滤可用词条</span>
+    </div>
+
+    <div class="calc-layout">
+      <!-- 左：选词条 + 已选 -->
+      <div class="calc-col">
+        <div class="calc-step">
+          <span class="step-num">1</span>
+          <div>
+            <h3 id="step1Title">选择词条</h3>
+            <p class="hint" id="step1Hint">点击选择第 1 条词条</p>
+          </div>
+        </div>
+        <div id="statPalette" class="palette"></div>
+
+        <div id="fwdOnly">
+        <div class="calc-step">
+          <span class="step-num">2</span>
+          <div>
+            <h3>已选词条（标正负）</h3>
+            <p class="hint">点 + / − 切换极性，点 ✕ 移除</p>
+          </div>
+        </div>
+        <div id="myRiven" class="riven-strip">
+          <span class="empty-tip">尚未选择词条</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- 中：熔接按钮 -->
+      <div class="calc-mid">
+        <button id="fuseBtn" class="fuse-btn" disabled>⚗️<br>熔接</button>
+      </div>
+
+      <!-- 右：熔接结果 -->
+      <div class="calc-col">
+        <div class="calc-step">
+          <span class="step-num">3</span>
+          <div>
+            <h3>熔接结果</h3>
+            <p class="hint">选好 2 条词条后，点击「熔接」</p>
+          </div>
+        </div>
+        <div id="resultPanel" class="result-panel">
+          <span class="empty-tip">选择 2 条词条后，点击左侧「熔接」按钮查看结果</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MECHANISM ============ -->
+<section id="mech" class="section reveal">
+  <h2 class="sec-title">新机制介绍</h2>
+  <p class="sec-desc">紫卡（裂罅 Mod）2016 年推出，近十年后迎来两项重大新功能。</p>
+
+  <div class="mech-grid">
+    <div class="mech-card">
+      <div class="mech-head">
+        <span class="mech-icon">🔒</span>
+        <div>
+          <h3>属性锁定</h3>
+          <span class="pill pill-green">已随《Narin 的冰刃》上线</span>
+        </div>
+      </div>
+      <p>循环裂罅时<strong>锁定 1 条属性</strong>，它在循环中永不改变——这是玩家呼吁多年的功能。</p>
+      <ul>
+        <li>一次<strong>只能锁 1 条</strong>，锁哪条自己选</li>
+        <li>锁定 / 解锁<strong>完全免费</strong></li>
+        <li>但<strong>带锁循环时赤毒消耗翻倍</strong></li>
+        <li><span class="warn">关掉界面即失效</span>，每次要重新锁</li>
+        <li>锁定时<strong>属性数量被冻结</strong>（3正1负永远是3正1负）</li>
+      </ul>
+    </div>
+
+    <div class="mech-card">
+      <div class="mech-head">
+        <span class="mech-icon">⚗️</span>
+        <div>
+          <h3>裂罅熔接</h3>
+          <span class="pill pill-purple">随《冰川反抗》稍后上线</span>
+        </div>
+      </div>
+      <p>用「裂罅熔接器」把紫卡上<strong>两条词条熔成 1 条融合词条</strong>，创造出洗不出来的新词条。</p>
+      <ul>
+        <li>组合<strong>预先设定、固定不变</strong>，熔接前必能预览结果</li>
+        <li>极性规则：一正一负 → 融合词条<b>负面</b>；两正 → 融合词条<b>正面</b>；再随机补一条<b>正面</b>词条</li>
+        <li>融合词条<strong>默认锁定</strong>，但不占用手动锁名额</li>
+        <li>融合后仍可<strong>再手动锁 1 条</strong> → 一张卡可锁 2 词条</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CORE RULES ============ -->
+<section id="core" class="section reveal">
+  <h2 class="sec-title">核心机制规则</h2>
+  <p class="sec-desc">决定"怎么洗才划算"的五条硬规则。</p>
+
+  <div class="rule-list">
+    <div class="rule-item">
+      <div class="rule-num">01</div>
+      <div>
+        <h3>熔接后：2 条 → 1 条融合 + 1 条随机</h3>
+        <p>参与组合的两条属性被消耗，取而代之的是<strong>融合词条</strong> + 随机补充的<strong>一条正面词条</strong>。极性：<strong>一正一负 → 融合词条为负</strong>；<strong>两正 → 融合词条为正</strong>。</p>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">02</div>
+      <div>
+        <h3>融合词条默认锁定，且不算"手动锁定"</h3>
+        <p>融合词条附着后<strong>自动锁定、永不掉</strong>（可主动移除后重熔），却<strong>不让赤毒消耗翻倍</strong>——这是白赚的一条锁。</p>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">03</div>
+      <div>
+        <h3>融合后可锁 2 词条</h3>
+        <p>融合词条（自动锁）+ 你再手动锁 1 条 = <strong>一张卡洗点时同时锁住 2 条</strong>，把最后 1–2 条洗到完美。</p>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">04</div>
+      <div>
+        <h3>熔接器：6 人高难本，一周 3 次</h3>
+        <p>裂罅熔接器仅产自新<strong>6 人高难本</strong>，<strong>每周只能刷 3 次</strong>，难度较高——极度稀缺，只投你真正要毕业的武器。</p>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">05</div>
+      <div>
+        <h3>融合词条洗不出来，只能熔</h3>
+        <p>循环（洗卡）<strong>只能出基础词条</strong>；融合词条不在循环池里。这也是它稀缺、值钱的原因。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note-card">
+    <h3>⚠️ 熔接器一周只有 3 次机会，别浪费</h3>
+    <p>每次熔接前必能预览结果，所以动手前<strong>先用上面的计算器算清楚</strong>：哪两条熔、熔出什么、极性是正是负，确认了再花熔接器。</p>
+  </div>
+</section>
+
+<!-- ============ TUTORIAL ============ -->
+<section id="tutorial" class="section reveal">
+  <h2 class="sec-title">洗卡教程 · 收益最大化</h2>
+  <p class="sec-desc">跟着 5 步走，用最少赤毒洗出最想要的卡。</p>
+
+  <div class="tutorial-box">
+    <div class="tut-progress"><div id="tutBar" class="tut-bar"></div></div>
+    <div class="tut-dots" id="tutDots"></div>
+
+    <div id="tutCard" class="tut-card">
+      <div class="tut-step-label" id="tutLabel">步骤 1 / 5</div>
+      <h3 id="tutTitle"></h3>
+      <p id="tutBody"></p>
+      <div id="tutTip" class="tut-tip"></div>
+    </div>
+
+    <div class="tut-controls">
+      <button id="tutPrev" class="btn btn-ghost">← 上一步</button>
+      <button id="tutNext" class="btn btn-primary">下一步 →</button>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>数据源：B 站开发者工坊《Narin 的冰刃》官方文章 · Warframe 官方论坛 Devshorts #115/#116 · 官方熔接表（所有武器 / 枪械 / 近战）· 中文维基 / 社区交叉验证</p>
+  <p class="foot-dim">开发者工坊内容在正式上线前仍可能调整（官方声明 subject to change），请以游戏内实装为准。</p>
+</footer>
+
+<script src="gsap.min.js?v=20260924d"></script>
+<script src="app.js?v=20260924d"></script>
+</body>
+</html>
