@@ -271,11 +271,10 @@ button,input,select{font-family:inherit}
   position:absolute;z-index:3;top:4px;right:5px;display:grid;padding:0;
   width:18px;height:18px;border-radius:2px;place-items:center;
   background:rgba(6,10,14,.6);border:1px solid var(--line);
-  cursor:default;color:rgba(255,255,255,.78);opacity:.82;
-  pointer-events:none;transition:.16s;
+  cursor:pointer;color:rgba(255,255,255,.78);opacity:.82;transition:.16s;
 }
 .mod-card:hover .mc-pol{opacity:1;color:rgba(255,255,255,.8)}
-.mod-card.sel .mc-pol{opacity:1;cursor:pointer;pointer-events:auto;color:#fff;background:rgba(6,10,14,.72);border-color:var(--line-2)}
+.mod-card.sel .mc-pol{opacity:1;color:#fff;background:rgba(6,10,14,.72);border-color:var(--line-2)}
 /* 不可熔 / 弱化 / 空槽：不显示极性，避免网格噪声 */
 .mod-card.dim .mc-pol,.mod-card.muted .mc-pol,.mod-card.ghost .mc-pol{display:none}
 .mc-pol svg{width:11px;height:11px}
@@ -327,15 +326,12 @@ button,input,select{font-family:inherit}
 /* ============================================================
    右侧：大型 Preview = 查询结果（母版大卡 ≈ 竖向 0.56 : 1）
    ============================================================ */
-/* 整列 =「结果卡 + 它的操作」，作为一个整体在右侧居中 */
-.result-col{display:flex;flex-direction:column;justify-content:center;min-height:0;gap:14px}
 .result{
-  flex:0 1 auto;min-height:0;display:flex;flex-direction:column;padding:4px 2px;
+  min-height:0;display:flex;flex-direction:column;padding:4px 2px;
   overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
   scrollbar-color:rgba(255,255,255,.18) transparent;
 }
-/* 熔接贴在 Result Card 正下方、水平居中，形成「卡片 + 它的操作」这一组 */
-.result-actions{flex:none;display:flex;align-items:center;justify-content:center;gap:12px}
+
 .result::-webkit-scrollbar{width:7px}
 .result::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
 .result-inner{
@@ -421,44 +417,6 @@ button,input,select{font-family:inherit}
 }
 .status-hint[hidden]{display:none}
 
-/* 熔接 = 页面唯一的 Primary Action：实心金底 + 深色字 + 亮边，
-   方角、窄字距的 Warframe 操作栏语汇。位置在 Result Card 正下方。 */
-.fuse-btn{
-  display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 18px;
-  border-radius:2px;cursor:pointer;
-  font-size:15px;font-weight:800;letter-spacing:.22em;
-  transition:background .16s,border-color .16s,color .16s,box-shadow .16s,transform .12s;
-}
-.fuse-btn > svg{width:19px;height:19px;flex:none}
-.fb-key{display:grid;place-items:center;padding-left:11px;margin-left:1px;border-left:1px solid currentColor;opacity:.45}
-.fb-key svg{width:14px;height:14px}
-.fuse-btn:not(:disabled){
-  background:linear-gradient(180deg,#f6df9a,#d2a63c 58%,#b98b28);
-  border:1px solid #ffeeb4;color:#241a05;
-  box-shadow:0 0 0 1px rgba(28,18,0,.6),0 3px 12px rgba(0,0,0,.5);
-}
-.fuse-btn:not(:disabled):hover{
-  background:linear-gradient(180deg,#fff2c2,#ecc156 58%,#d2a32f);
-  border-color:#fff8dc;color:#1b1303;
-  box-shadow:0 0 0 1px rgba(28,18,0,.6),0 3px 16px rgba(0,0,0,.55),0 0 16px rgba(233,201,108,.4);
-}
-.fuse-btn:not(:disabled):active{transform:translateY(1px)}
-.fuse-btn:disabled{
-  cursor:not-allowed;
-  background:rgba(255,255,255,.035);
-  border:1px solid rgba(255,255,255,.16);
-  color:#8b96a1;
-}
-.fuse-btn:disabled .fb-key{opacity:.3}
-.fuse-btn.hidden{display:none}
-.fuse-hint{
-  display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;
-  border:1px dashed rgba(233,201,108,.34);border-radius:2px;
-  font-size:12.5px;letter-spacing:.08em;color:var(--gold-lo);
-}
-.fuse-hint svg{width:15px;height:15px}
-.fuse-hint[hidden]{display:none}
-
 /* 底部仅保留一个独立的「清空」操作（不再是数字快捷键提示） */
 .clear-btn{
   flex:none;height:28px;padding:0 14px;border-radius:2px;cursor:pointer;
@@ -523,6 +481,11 @@ button,input,select{font-family:inherit}
   border:1px solid rgba(185,120,255,.42);background:rgba(60,22,100,.4);color:#f0e6ff;
 }
 .coach-body .ct svg{width:15px;height:15px;color:rgba(232,208,255,.8)}
+/* 说明框里的小分节标题（例如「注意极性」） */
+.coach-body .csub{
+  margin:10px 0 6px;padding-top:9px;border-top:1px solid var(--line);
+  font-size:11px;letter-spacing:.18em;color:var(--gold-lo);
+}
 .coach-body .cwait{margin-top:9px;font-size:11.5px;letter-spacing:.06em;color:var(--gold)}
 .coach-body .cwait::before{
   content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
@@ -649,7 +612,7 @@ button,input,select{font-family:inherit}
   .actionbar{grid-template-rows:auto auto}
   .body{grid-template-columns:minmax(0,1fr) 234px;align-items:start;gap:14px}
   .mod-grid{overflow:visible;min-height:0}
-  .result-col{position:sticky;top:12px}
+  .result{position:sticky;top:12px}
   .rs-recipes{max-height:none}
 }
 @media (max-width:760px){
@@ -667,7 +630,7 @@ button,input,select{font-family:inherit}
   .mc-name{font-size:11.5px}
   .mc-cat{font-size:9.5px}
   .mod-card.sel .mc-name{left:20px;right:5px}
-  .result-col{order:-1;gap:8px}
+  .result{order:-1}
   .result{flex:none;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center;overflow:visible}
   .rs-card{height:clamp(180px,26vh,240px)}
   .topbar{flex-wrap:wrap;gap:10px}

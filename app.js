@@ -293,12 +293,14 @@ function polTxt(p){
    用 token 防止连点时旧动画的 onComplete 覆盖新结果。 */
 let resultToken = 0;
 function applyResult(box, html){
+  const next = '<div class="result-inner">' + html + '</div>';
+  if (box.innerHTML === next) return;      // 内容没变就不重绘，避免自动查询下反复闪
   const token = ++resultToken;
   const prev = box.querySelector('.result-inner');
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const commit = () => {
     if (token !== resultToken) return;
-    box.innerHTML = '<div class="result-inner">' + html + '</div>';
+    box.innerHTML = next;
     animResult();
   };
   if (hasGSAP && prev && !reduce){
@@ -344,16 +346,16 @@ function renderResult(){
     return;
   }
 
-  /* ---------- 正向：必须点「熔接」才出结果 ---------- */
+  /* ---------- 正向：选满两条即自动查询，没有确认按钮 ---------- */
   if (!fused){
+    const n = selected.length;
     html = resultCard({
       kicker:'熔接结果', name:'？', icon:'#i-riven', cls:'empty',
-      foot:'等待执行熔接',
+      foot: n === 0 ? '等待选择两条词条' : '请选择第二条词条',
     });
-    const n = selected.length;
     const tip = n === 0
-      ? '从左侧选择 <b>2</b> 条词条，再点下方「熔接」。'
-      : '已选 <b>' + n + '</b> / 2 · 再选 ' + (2 - n) + ' 条后可执行熔接。';
+      ? '从左侧选择 <b>2</b> 条词条，<b>选满即自动查询</b>。'
+      : '已选 <b>' + statById(selected[0].id).name + '</b> · 再选 1 条即自动查询。';
     html += '<p class="rs-meta">' + tip + '</p>';
     applyResult(box, html);
     return;
@@ -423,9 +425,8 @@ function renderStatus(){
     return;
   }
   if (!fused){
-    if (selected.length === 0) setStatus('就绪 · 选择 2 条词条，再点「熔接」');
-    else if (selected.length === 1) setStatus('已选：' + statById(selected[0].id).name + ' · 还需 1 条');
-    else setStatus('已选 2 条 · 点「熔接」执行查询');
+    if (selected.length === 0) setStatus('就绪 · 选择两条词条后自动查询');
+    else setStatus('已选：' + statById(selected[0].id).name + ' · 再选 1 条即自动查询');
     return;
   }
   setStatus(fused.out
@@ -453,24 +454,19 @@ function renderGroupIcons(){
   });
 }
 
-/* 熔接按钮：正向 2 条才解锁；反向即时查询，按钮换成提示 */
-function renderFuse(){
-  const btn = $('fuseBtn');
-  const hint = $('fuseHint');
-  if (!btn) return;
-  const rev = calcMode === 'rev';
-  btn.classList.toggle('hidden', rev);
-  if (hint) hint.hidden = !rev;
-  if (rev) return;
-  const ready = selected.length === 2;
-  btn.disabled = !ready;
-  const label = $('fuseLabel');
-  if (label) label.textContent = '熔接';
-  btn.title = ready ? '执行熔接查询' : '需要先选择 2 条词条';
-  btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+/* Forward = 选择即查询：结果由当前状态推导，不再依赖任何确认按钮。
+   极性也是推导输入之一 —— 所以切换 + / − 会立刻反映到结果上。
+   查询本身仍然原样调用 findFusion()。 */
+function syncQuery(){
+  fused = (calcMode === 'fwd' && selected.length === 2)
+    ? { a:{ id:selected[0].id, pol:selected[0].pol },
+        b:{ id:selected[1].id, pol:selected[1].pol },
+        out: findFusion(selected[0].id, selected[1].id) }
+    : null;
 }
 
 function renderAll(){
+  syncQuery();
   renderGrid();
   renderResult();
   renderTotals();
@@ -478,7 +474,7 @@ function renderAll(){
   renderStatusHint();
   renderMode();
   renderGroupIcons();
-  renderFuse();
+  coachSync();
 }
 
 /* ============================================================
@@ -488,8 +484,7 @@ function toggleStat(id){
   const i = selected.findIndex(s => s.id === id);
   if (i >= 0) selected.splice(i, 1);
   else if (selected.length < 2) selected.push({ id: id, pol:'pos' });
-  fused = null;                       // 选择一变，上一次的查询结果作废
-  renderAll();
+  renderAll();                        // syncQuery 会按当前选择重算结果
   animRefresh();
 }
 
@@ -502,44 +497,31 @@ function onCardClick(key, kind){
   }
   if (selected.length >= 2 && !selected.some(s => s.id === key)){
     selected[1] = { id:key, pol:'pos' };                // 已满：新点击替换第二条
-    fused = null;
     renderAll(); animRefresh();
-    coachNotify('card', key);
     return;
   }
   toggleStat(key);
-  coachNotify('card', key);
 }
 
+/* 极性开关是常驻可点的真实控件。
+   未选中的卡上点它 —— 等价于「选中这张卡，并把极性设成切换后的值」，
+   这样任何状态下点 + / − 都有真实反馈，不会出现「看得见点不动」的死控件。 */
 function onCardPol(key){
   const i = selected.findIndex(s => s.id === key);
-  if (i < 0) return;
-  selected[i].pol = selected[i].pol === 'pos' ? 'neg' : 'pos';
-  fused = null;
+  if (i >= 0){
+    selected[i].pol = selected[i].pol === 'pos' ? 'neg' : 'pos';
+  } else if (selected.length >= 2){
+    selected[1] = { id:key, pol:'neg' };                // 已满：替换第二条
+  } else {
+    selected.push({ id:key, pol:'neg' });
+  }
   renderAll();
   animRefresh();
-}
-
-/* 正向查询的唯一入口：点「熔接」或按 Enter */
-function doFuse(){
-  if (calcMode !== 'fwd' || selected.length !== 2) return;
-  /* 业务查询：findFusion 原样调用，未做任何改动 */
-  const f = findFusion(selected[0].id, selected[1].id);
-  fused = {
-    a:{ id:selected[0].id, pol:selected[0].pol },
-    b:{ id:selected[1].id, pol:selected[1].pol },
-    out: f,
-  };
-  renderResult();
-  renderStatus();
-  animResult();
-  coachNotify('fuse');
 }
 
 function clearAll(){
   selected = [];
   selectedOut = null;
-  fused = null;
   ui.query = '';
   const si = $('searchInput');
   if (si) si.value = '';
@@ -549,7 +531,7 @@ function clearAll(){
 
 function resetView(){
   closePanel();
-  selected = []; selectedOut = null; fused = null;
+  selected = []; selectedOut = null;
   ui.query = ''; ui.group = 'all';
   const si = $('searchInput'); if (si) si.value = '';
   weaponCat = 'all';
@@ -678,14 +660,13 @@ function closePanel(){
    快速上手（首次使用教程 · Phase 3）
    叠加在真实界面之上，用真实交互走完一次
    「火焰伤害 ＋ 冰冻伤害 → 熔接 → 爆炸伤害」。
-   教程本身不改业务：只驱动已有的 onCardClick / doFuse。
+   教程本身不改业务：只驱动已有的 onCardClick / 选择与极性逻辑。
    ============================================================ */
 const COACH_KEY = 'rivenFusionOnboardingDone';
 
 const coach = {
   active:false,
-  step:0,      // 0=封面 / 1=选第一条 / 2=选第二条·点熔接 / 3=看结果
-  phase:'',    // step 2 内部：''=选词条 / 'fuse'=点熔接
+  step:0,      // 0=封面 / 1=选第一条 / 2=选第二条 / 3=看结果（选满两条自动查询）
   el:null,     // 当前高亮目标
   subEl:null,  // 次级强调目标（极性 + / −）
   snapshot:null,
@@ -713,41 +694,39 @@ const COACH_TEXT = {
               '<b>已知一个目标词条</b> —— 查怎么熔出它。',
          next:'开始' },
   '1': { step:'步骤 1 / 3', title:'选择第一个词条',
-         body:'先选择第一条词条。' + coachChip('heat') +
-              '<br>注意右上角的 <b>＋ / −</b>：这里可以切换词条极性。' +
-              '<br><b>极性会影响熔接后融合词条的正负。</b>' +
-              '<div class="cwait">点击高亮的这张卡</div>',
+         body:'先选择你手里的第一条词条。' + coachChip('heat') +
+              '<div class="csub">注意极性</div>' +
+              '卡片右上角的 <b>＋ / −</b> 可以切换词条的正负极性。<br>' +
+              '<b>极性会影响熔接后融合词条的正负。</b>' +
+              '<div class="cwait">点击高亮的这张卡（或先点右上角的 ＋ / −）</div>',
          next:'' },
   '2': { step:'步骤 2 / 3', title:'选择第二个词条',
          body:'再选择第二条词条。' + coachChip('cold') +
-              '<br>两条词条都可以单独调整极性。' +
-              '<br>确认后点击【熔接】。' +
+              '<br>两条词条都可以<b>分别调整自己的极性</b>（卡片右上角 ＋ / −）。' +
+              '<br><b>选满两条后会自动查询</b>，不需要再点任何按钮。' +
               '<div class="cwait">点击高亮的这张卡</div>',
          next:'' },
-  '2f':{ step:'步骤 2 / 3', title:'执行熔接',
-         body:'两条词条都选好了。<div class="cwait">点击右侧高亮的【熔接】</div>',
-         next:'' },
   '3': { step:'步骤 3 / 3', title:'查看熔接结果',
-         body:'右侧会显示两个词条对应的融合结果。' +
-              '<br><br>如果改变词条的极性，<b>融合词条的正负也会相应变化</b>。' +
-              '<br><br>不知道怎么得到某个词条？切换到 <b>反向查询</b> 即可查看配方。',
+         body:'选择两个词条后，<b>系统会立即显示</b>对应的融合结果。' +
+              '<br><br>如果改变任意一个词条的 <b>＋ / −</b> 极性，<b>结果也会立即更新</b>。' +
+              '<br><br>如果你知道自己想得到什么词条：切换到 <b>反向查询</b>，' +
+              '直接选择目标词条，即可查看所有可以得到它的配方。',
          next:'完成' },
 };
 
-function coachKey(){ return String(coach.step) + (coach.phase === 'fuse' ? 'f' : ''); }
+function coachKey(){ return String(coach.step); }
 
 function coachTarget(){
   if (coach.step === 1) return document.querySelector('.mod-card[data-key="heat"]');
-  if (coach.step === 2 && coach.phase !== 'fuse') return document.querySelector('.mod-card[data-key="cold"]');
-  if (coach.step === 2 && coach.phase === 'fuse') return $('fuseBtn');
-  if (coach.step === 3) return document.querySelector('.result-col');
+  if (coach.step === 2) return document.querySelector('.mod-card[data-key="cold"]');
+  if (coach.step === 3) return $('resultPane');
   return null;
 }
 
 /* 次级强调目标：本步要顺带讲清楚的控件（极性 + / −） */
 function coachSubTarget(){
   if (coach.step === 1) return document.querySelector('.mod-card[data-key="heat"] .mc-pol');
-  if (coach.step === 2 && coach.phase !== 'fuse') return document.querySelector('.mod-card[data-key="cold"] .mc-pol');
+  if (coach.step === 2) return document.querySelector('.mod-card[data-key="cold"] .mc-pol');
   return null;
 }
 
@@ -890,9 +869,8 @@ function coachTrapTab(e){
   return true;
 }
 
-function coachGo(step, phase){
+function coachGo(step){
   coach.step = step;
-  coach.phase = phase || '';
   coachRender();
 }
 
@@ -916,14 +894,14 @@ function coachStart(){
     group: ui.group, query: ui.query,
   };
   /* 归零，保证高亮目标一定存在且可点 */
-  selected = []; selectedOut = null; fused = null;
+  selected = []; selectedOut = null;
   weaponCat = 'all'; calcMode = 'fwd'; ui.group = 'all'; ui.query = '';
   const si = $('searchInput'); if (si) si.value = '';
   const ws = $('wpSelect'); if (ws) ws.value = 'all';
   renderAll();
 
   coach.active = true;
-  coach.step = 0; coach.phase = '';
+  coach.step = 0;
   $('coach').hidden = false;
   coachRender();
 }
@@ -952,12 +930,13 @@ function coachExit(keepResult){
   if (back && back.focus) { try { back.focus({ preventScroll:true }); } catch (err) {} }
 }
 
-/* 业务动作完成后回调：教程据此推进（业务本身不受影响） */
-function coachNotify(evt, key){
+/* 教程推进改为「看状态」而不是「听事件」：
+   这样无论用户是点卡片本体、还是点右上角的 ＋ / − 把卡片选上，都能正确前进。 */
+function coachSync(){
   if (!coach.active) return;
-  if (coach.step === 1 && evt === 'card' && key === 'heat'){ coachGo(2); return; }
-  if (coach.step === 2 && coach.phase !== 'fuse' && evt === 'card' && key === 'cold'){ coachGo(2, 'fuse'); return; }
-  if (coach.step === 2 && coach.phase === 'fuse' && evt === 'fuse'){ coachGo(3); }
+  const has = id => selected.some(s => s.id === id);
+  if (coach.step === 1 && has('heat')){ coachGo(2); return; }
+  if (coach.step === 2 && has('cold') && selected.length === 2){ coachGo(3); }
 }
 
 function coachKeydown(e){
@@ -970,7 +949,7 @@ function coachKeydown(e){
   if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar'){
     const t = e.target;
     /* 焦点已经在真实控件上（说明框按钮 / 高亮卡片）时：
-       交给原本的激活逻辑处理，这里只负责拦掉全局 doFuse。
+       交给原本的激活逻辑处理，这里只负责拦掉全局快捷键。
        否则会出现「按键被处理两次」—— 最坑的是按钮切步骤后被 hidden，
        原生 click 会落到接手焦点的那个元素上（例如「跳过」），把教程误关掉。 */
     if (t && t.closest && t.closest('button')) return true;   // 真按钮：原生激活即可
@@ -1056,9 +1035,6 @@ function bindEvents(){
       const card = el.closest('.mod-card');
       if (!card || card.classList.contains('ghost')) return;
       e.preventDefault();
-      /* 必须阻止冒泡：否则同一次 Enter 还会命中全局的 doFuse()，
-         变成「选完第二条就自动查询」，破坏「点【熔接】才查询」的约定 */
-      e.stopPropagation();
       onCardClick(card.dataset.key, card.dataset.kind);
     });
   }
@@ -1073,7 +1049,7 @@ function bindEvents(){
 
   const wp = $('wpSelect');
   if (wp) wp.onchange = () => {
-    weaponCat = wp.value; selected = []; selectedOut = null; fused = null;
+    weaponCat = wp.value; selected = []; selectedOut = null;
     renderAll(); animGrid();
   };
 
@@ -1081,7 +1057,7 @@ function bindEvents(){
     b.onclick = () => {
       if (b.dataset.mode === calcMode) return;
       calcMode = b.dataset.mode;
-      selected = []; selectedOut = null; fused = null;
+      selected = []; selectedOut = null;
       renderAll(); animGrid(); animResult();
     };
   });
@@ -1089,7 +1065,6 @@ function bindEvents(){
     b.onclick = () => openPanel(b.dataset.panel);
   });
 
-  const fb = $('fuseBtn'); if (fb) fb.onclick = doFuse;
   const cb = $('clearBtn'); if (cb) cb.onclick = clearAll;
 
   const oc = $('ovClose'); if (oc) oc.onclick = closePanel;
@@ -1100,16 +1075,10 @@ function bindEvents(){
     if (coachKeydown(e)) return;                 // 快速上手期间：Esc 退出 / Enter 确认
     if (coach.active) return;                    // 教程期间全局快捷键让位（含原生按钮自身的 Enter）
     if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){
-      if (e.key === 'Escape') e.target.blur();
-      if (e.key === 'Enter'){ e.target.blur(); doFuse(); }
+      if (e.key === 'Escape') e.target.blur();     // Enter 不再触发查询（无确认按钮）
       return;
     }
     if (e.key === 'Escape'){ if (!closePanel()) resetView(); return; }
-    if (e.key === 'Enter'){
-      /* 焦点在卡片/极性按钮上时由网格自己处理，这里不再触发熔接 */
-      if (e.target && e.target.closest && e.target.closest('#modGrid')) return;
-      doFuse(); return;
-    }
   });
 
   let rt = 0;

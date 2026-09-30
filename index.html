@@ -249,26 +249,13 @@
       <div class="mod-grid" id="modGrid" role="listbox" aria-label="裂罅词条" aria-multiselectable="true"></div>
       <p class="grid-empty" id="gridEmpty" hidden>没有匹配的词条 —— 换个关键词，或切回「全部类别」。</p>
     </div>
-    <aside class="result-col">
-      <div class="result" id="resultPane" aria-live="polite" aria-label="查询结果"></div>
-      <!-- 熔接是「这张结果卡」的唯一操作：贴在卡片正下方并水平居中 -->
-      <div class="result-actions">
-        <button class="fuse-btn" id="fuseBtn" disabled>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fuse"/></svg>
-          <span id="fuseLabel">熔接</span>
-          <span class="fb-key"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-enter"/></svg></span>
-        </button>
-        <span class="fuse-hint" id="fuseHint" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-scan"/></svg>反查 · 选中目标即时出结果
-        </span>
-      </div>
-    </aside>
+    <div class="result" id="resultPane" aria-live="polite" aria-label="查询结果"></div>
   </main>
 
   <footer class="bottombar">
     <div class="status">
       <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg>
-      <span id="statusText">就绪 · 选择词条开始查询</span>
+      <span id="statusText">就绪 · 选择两条词条后自动查询</span>
       <span class="status-hint" id="statusHint" hidden>点击词条右上角 ＋ / − 切换极性</span>
     </div>
     <button class="clear-btn" id="clearBtn">清空选择</button>
