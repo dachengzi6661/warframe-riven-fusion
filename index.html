@@ -3,233 +3,319 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>裂罅熔接计算器 · Warframe 紫卡新机制</title>
-<meta name="description" content="Warframe 紫卡（裂罅 Mod）新机制：二合一熔接属性计算器、属性锁定与熔接机制介绍、洗卡收益最大化教程。">
-<link rel="stylesheet" href="style.css?v=20260924d">
+<title>裂罅 / 熔接 · Warframe 裂罅熔接配方查询</title>
+<meta name="description" content="Warframe 裂罅（紫卡）熔接配方查询台：正向熔接 A + B → C，反向反查 C 由哪些词条熔成。">
+<link rel="stylesheet" href="style.css?v=20260930c">
 </head>
 <body>
 
-<nav class="nav">
-  <div class="nav-inner">
-    <span class="logo">◈ 裂罅熔接</span>
-    <div class="nav-links">
-      <a href="#calc">熔接计算器</a>
-      <a href="#mech">机制介绍</a>
-      <a href="#core">核心规则</a>
-      <a href="#tutorial">洗卡教程</a>
+<!-- ============================================================
+     背景层
+     母版是「Warframe 游戏场景 + UI 半透明覆盖」。
+     本仓库没有原版背景素材，因此这里**不绘制任何自创场景**，
+     只用一层低对比度的暗场 + 遮罩，让 UI 半透明地浮在上面。
+     ▸ 有背景图时：把图放到 assets/bg.jpg，即可自动作为最下层背景。
+     ============================================================ -->
+<div class="scene" aria-hidden="true"></div>
+<div class="scene-mask" aria-hidden="true"></div>
+
+<!-- ============================================================
+     图标精灵（自绘 inline SVG）
+     ============================================================ -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="rfTop" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#e8c2ff" stop-opacity=".95"/>
+    <stop offset=".45" stop-color="#a153e8" stop-opacity=".68"/>
+    <stop offset="1" stop-color="#4a1a7a" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="rfBot" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0" stop-color="#c887ff" stop-opacity=".85"/>
+    <stop offset="1" stop-color="#4a1a7a" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="rfBeam" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#7a2fd0" stop-opacity=".08"/>
+    <stop offset=".5" stop-color="#cf9bff" stop-opacity=".9"/>
+    <stop offset="1" stop-color="#7a2fd0" stop-opacity=".08"/>
+  </linearGradient>
+  <linearGradient id="rfCore" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#7b2fd0" stop-opacity=".38"/>
+    <stop offset=".22" stop-color="#3f1268" stop-opacity=".20"/>
+    <stop offset=".55" stop-color="#1c0733" stop-opacity=".10"/>
+    <stop offset="1" stop-color="#0c0814" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="rfHot" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+    <stop offset=".38" stop-color="#e9b6ff" stop-opacity=".55"/>
+    <stop offset="1" stop-color="#9a3ce8" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<!-- 品牌 / 状态 -->
+<symbol id="i-emblem" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.4l8.6 4.9v9.4L12 21.6 3.4 16.7V7.3z"/><path d="M12 7.4l4 4.6-4 4.6-4-4.6z"/></g></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l9.2 16.4H2.8z"/><path d="M12 9.3v4.4"/><path d="M12 17.2h.01"/></g></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><path d="M12 8.1h.01"/></g></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.4"/><path d="M15.6 15.6l4.6 4.6"/></g></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5l6.5 6.5-6.5 6.5"/></g></symbol>
+<symbol id="i-caret" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></g></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></g></symbol>
+<symbol id="i-enter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v8.5a3 3 0 01-3 3H5"/><path d="M8.5 12.5L5 16.5l3.5 4"/></g></symbol>
+
+<!-- 资源 / 统计 -->
+<symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h2M4 12h2M4 17.5h2"/><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5h7"/></g></symbol>
+<symbol id="i-fuse" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.6" cy="12" r="4.6"/><circle cx="16.4" cy="12" r="4.6"/></g></symbol>
+<symbol id="i-gem" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8l7.2 5.2L12 21.2 4.8 8z"/><path d="M4.8 8h14.4"/><path d="M12 2.8v18.4"/></g></symbol>
+
+<!-- 分类 -->
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3.6" y="3.6" width="7" height="7" rx="1.2"/><rect x="13.4" y="3.6" width="7" height="7" rx="1.2"/><rect x="3.6" y="13.4" width="7" height="7" rx="1.2"/><rect x="13.4" y="13.4" width="7" height="7" rx="1.2"/></g></symbol>
+<symbol id="i-element" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.9c3.4 4.3 6.2 6.4 6.2 10.3A6.2 6.2 0 0112 19.4a6.2 6.2 0 01-6.2-6.2c0-3.9 2.8-6 6.2-10.3z"/><path d="M12 19.2c-1.9 0-3.1-1.2-3.1-2.9 0-1.8 1.5-2.7 3.1-4.6 1.6 1.9 3.1 2.8 3.1 4.6 0 1.7-1.2 2.9-3.1 2.9z"/></g></symbol>
+<symbol id="i-faction" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.9l7.6 3v6.2c0 4.6-3.2 8.2-7.6 9.6-4.4-1.4-7.6-5-7.6-9.6V5.9z"/><path d="M12 8.4v6.4"/></g></symbol>
+<symbol id="i-gun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.6"/><path d="M12 4.4v3.4M12 16.2v3.4M4.4 12h3.4M16.2 12h3.4"/><circle cx="12" cy="12" r="1.5"/></g></symbol>
+<symbol id="i-blade" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.2l8.4-8.4"/><path d="M15.2 4.6l4.2 4.2-3 3-4.2-4.2z"/><path d="M6.4 15.6l2 2"/></g></symbol>
+
+<!-- 顶部动作 -->
+<symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.6C10.6 4.6 8.9 4.1 6.6 4.1c-.9 0-1.7.1-2.4.3v13.4c.7-.2 1.5-.3 2.4-.3 2.3 0 4 .5 5.4 1.5"/><path d="M12 5.6c1.4-1 3.1-1.5 5.4-1.5.9 0 1.7.1 2.4.3v13.4c-.7-.2-1.5-.3-2.4-.3-2.3 0-4 .5-5.4 1.5"/><path d="M12 5.6v13.4"/></g></symbol>
+<symbol id="i-rules" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.4" width="16" height="17.2" rx="2.2"/><path d="M8 8.4h8M8 12.2h8M8 16h4.6"/></g></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 6.4h7.8a3.2 3.2 0 010 6.4H8.6a3.2 3.2 0 000 6.4h9.8"/><circle cx="4.6" cy="6.4" r="1.7"/><circle cx="19.4" cy="19.2" r="1.7"/></g></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.4" cy="10.4" r="6.2"/><path d="M15 15l4.8 4.8"/><path d="M10.4 7.6v5.6M7.6 10.4h5.6"/></g></symbol>
+
+<!-- 卡面 / 极性 -->
+<symbol id="i-riven" viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 1.6l2.6 7.1 6.4-3.9-4 6.3 7 2.4-7 2.3 4 6.3-6.4-4-2.6 7.2-2.6-7.2-6.4 4 4-6.3-7-2.3 7-2.4-4-6.3 6.4 3.9z" opacity=".92"/></g></symbol>
+<symbol id="i-pos" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6.5v11M6.5 12h11"/></g></symbol>
+<symbol id="i-neg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 12h11"/></g></symbol>
+
+<!-- 横向裂罅卡面（185 × 100，与卡片长宽比一致）
+     结构对齐母版：半透明内芯「窗口」 + 四周厚晶框 + 端点晶翼 + 顶端徽记
+     注：母版卡面下缘那排圆点是 Mod 等级指示灯，本项目没有等级数据，
+         因此**刻意不画圆点**，只用一条细亮条。 -->
+<symbol id="riven-frame" viewBox="0 0 185 100" preserveAspectRatio="none">
+  <rect x="0" y="0" width="185" height="100" rx="4" fill="#0a0614" opacity=".58"/>
+  <rect x="0" y="0" width="185" height="100" rx="4" fill="url(#rfCore)" opacity=".85"/>
+  <g fill="#9a4ce0" stroke="#e5c9ff" stroke-width="1.1" stroke-opacity=".55" stroke-linejoin="round">
+    <path d="M0 0h185v15l-12-8-12 11-12-10-12 11-12-10-12 10-12-11-12 10-12-10-12 11-12-10-12 10-12-11-12 10-12-10-12 11-12-10-12 10z"/>
+    <path d="M0 100h185v-15l-12 8-12-11-12 10-12-11-12 10-12-10-12 11-12-10-12 10-12-11-12 10-12-10-12 11-12-10-12 10-12-11-12 10-12-10z"/>
+    <path d="M0 6l16 10-8 12 12 12-11 12 12 12-11 12 10 12-12 10 0 2L0 100z"/>
+    <path d="M185 6l-16 10 8 12-12 12 11 12-12 12 11 12-10 12 12 10 0 2z"/>
+  </g>
+  <path d="M0 0h185v15l-12-8-12 11-12-10-12 11-12-10-12 10-12-11-12 10-12-10-12 11-12-10-12 10-12-11-12 10-12-10-12 11-12-10-12 10z" fill="url(#rfTop)"/>
+  <path d="M0 100h185v-15l-12 8-12-11-12 10-12-11-12 10-12-10-12 11-12-10-12 10-12-11-12 10-12-10-12 11-12-10-12 10-12-11-12 10-12-10z" fill="url(#rfBot)" opacity=".85"/>
+  <path d="M0 6l16 10-8 12 12 12-11 12 12 12-11 12 10 12-12 10 0 2L0 100z" fill="url(#rfTop)" opacity=".9"/>
+  <path d="M185 6l-16 10 8 12-12 12 11 12-12 12 11 12-10 12 12 10 0 2z" fill="url(#rfTop)" opacity=".9"/>
+  <g fill="none" stroke="#f0dcff" stroke-width="1.1" opacity=".42" stroke-linecap="round">
+    <path d="M7 20l9 12M9 44l11 12M8 68l11 12M12 88l6 8"/>
+    <path d="M178 20l-9 12M176 44l-11 12M177 68l-11 12M173 88l-6 8"/>
+    <path d="M28 7l10 9M52 6l11 10M76 7l10 9M100 6l11 10M124 7l10 9M148 6l11 10"/>
+  </g>
+  <path d="M0 0h62l-9 12-10-9-11 10L20 6 7 15z" fill="#e7d2ff" opacity=".16"/>
+  <path d="M185 0h-52l8 12 9-9 11 10 9-7 12 9z" fill="#e7d2ff" opacity=".13"/>
+  <g fill="#f6ecff">
+    <path d="M0 0h25l-9 13L7 6z" opacity=".5"/>
+    <path d="M185 0h-23l8 13 8-7z" opacity=".45"/>
+    <path d="M43 0h19l-10 11z" opacity=".35"/>
+    <path d="M95 0h17l-8 12z" opacity=".32"/>
+    <path d="M139 0h19l-10 11z" opacity=".35"/>
+    <path d="M0 86l15 14H0z" opacity=".34"/>
+    <path d="M185 86l-15 14h15z" opacity=".34"/>
+  </g>
+  <g fill="#2b0a4c">
+    <path d="M33 0h9l-7 10z" opacity=".55"/>
+    <path d="M75 0h9l-7 10z" opacity=".55"/>
+    <path d="M117 0h9l-7 10z" opacity=".55"/>
+    <path d="M157 0h9l-7 10z" opacity=".55"/>
+  </g>
+  <path d="M92.5 4l7.6 13.4H84.9z" fill="#f2e9fb" opacity=".9"/>
+  <path d="M92.5 8.2l4 7.2h-8z" fill="#2f0a52" opacity=".9"/>
+  <path d="M22 50h6M157 50h6" stroke="#e0c2ff" stroke-width="1.6" opacity=".85"/>
+  <path d="M32 92.5h121" stroke="#c9a0ff" stroke-width="1" opacity=".45"/>
+  <rect x="21" y="15" width="143" height="70" rx="1.5" fill="none" stroke="#0a0614" stroke-width="1.4" opacity=".6"/>
+  <rect x="1" y="1" width="183" height="98" rx="3.6" fill="none" stroke="#d3a8ff" stroke-width="1" opacity=".5"/>
+</symbol>
+
+<!-- 纵向裂罅卡面（100 × 170，用于右侧大型 Preview） -->
+<symbol id="riven-frame-p" viewBox="0 0 100 170" preserveAspectRatio="none">
+  <rect x="0" y="0" width="100" height="170" rx="4" fill="#0a0413"/>
+  <rect x="0" y="0" width="100" height="170" rx="4" fill="url(#rfCore)"/>
+  <path d="M0 0h100v9l-7-6-6 10-7-8-6 11-7-8-6 7-7-9-6 10-7-9-6 8-7-7-6 10-7-9-6 7-7-8-6 8z" fill="url(#rfTop)"/>
+  <path d="M0 170h100v-8l-6 6-7-9-6 8-7-10-6 9-7-7-6 10-7-9-6 8-7-11-6 10-7-8-6 9-7-7-6 8-7-10-6 8z" fill="url(#rfBot)" opacity=".5"/>
+  <path d="M0 9l17-9h10L14 27l8 14-12 13-10-5z" fill="url(#rfTop)" opacity=".8"/>
+  <path d="M100 9l-17-9h-10l13 27-8 14 12 13 10-5z" fill="url(#rfTop)" opacity=".8"/>
+  <path d="M50 3l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="url(#rfHot)"/>
+  <path d="M50 30v34l-4 22" fill="none" stroke="url(#rfBeam)" stroke-width="1" opacity=".36"/>
+  <path d="M15 30l-2 40 5 20-4 26" fill="none" stroke="url(#rfBeam)" stroke-width="1.1" opacity=".38"/>
+  <path d="M85 30l2 40-5 20 4 26" fill="none" stroke="url(#rfBeam)" stroke-width="1.1" opacity=".38"/>
+  <path d="M0 85h8M92 85h8" stroke="url(#rfBeam)" stroke-width="1.5"/>
+  <path d="M0 143l11 13-11 14z" fill="url(#rfBot)" opacity=".5"/>
+  <path d="M100 143l-11 13 11 14z" fill="url(#rfBot)" opacity=".5"/>
+  <path d="M8 2h84" stroke="#f0d8ff" stroke-width=".8" opacity=".20"/>
+  <rect x="1" y="1" width="98" height="168" rx="3.6" fill="none" stroke="#b978ff" stroke-width="1" opacity=".30"/>
+</symbol>
+</svg>
+
+
+<!-- ============================================================
+     主界面
+     空间关系对齐母版：标题 / 资源 → 五格 Actions → 总计 → 分隔
+     → 搜索·筛选 → 横向 Mod Card 网格 ＋ 右侧大型 Preview（结果）
+     → 底部操作（熔接 / 快速选择 / 清空 / 退出）
+     ============================================================ -->
+<div class="deck" id="deck">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-emblem"><svg viewBox="0 0 24 24"><use href="#i-emblem"/></svg></span>
+      <span class="brand-warn" title="配方数据来自开发者工坊，正式上线前可能调整"><svg viewBox="0 0 24 24"><use href="#i-warn"/></svg></span>
+      <h1 class="brand-title">裂罅 <span class="slash">/</span> <em>熔接</em></h1>
+      <span class="brand-mini" aria-hidden="true"><i></i><i></i><i></i></span>
+    </div>
+    <div class="purse">
+      <span class="purse-item" title="基础词条总数"><svg viewBox="0 0 24 24"><use href="#i-list"/></svg><b id="cStat">22</b></span>
+      <span class="purse-item" title="熔接配方总数"><svg viewBox="0 0 24 24"><use href="#i-fuse"/></svg><b id="cRecipe">22</b></span>
+      <span class="purse-item" title="融合属性总数"><svg viewBox="0 0 24 24"><use href="#i-gem"/></svg><b id="cOut">18</b></span>
+    </div>
+  </header>
+
+  <section class="actionbar">
+    <div class="action-list" id="actionList" role="tablist" aria-label="查询模式与资料">
+      <button class="action on" data-mode="fwd" role="tab" aria-selected="true">
+        <span class="a-cap">查询模式</span>
+        <span class="a-art"><svg viewBox="0 0 24 24"><use href="#i-fuse"/></svg><svg class="a-chev" viewBox="0 0 24 24"><use href="#i-chev"/></svg><svg viewBox="0 0 24 24"><use href="#i-riven"/></svg></span>
+        <span class="a-note">选择 2 条词条 · 熔接出融合词条</span>
+      </button>
+      <button class="action" data-mode="rev" role="tab" aria-selected="false">
+        <span class="a-cap">查询模式</span>
+        <span class="a-art"><svg viewBox="0 0 24 24"><use href="#i-scan"/></svg><svg class="a-chev" viewBox="0 0 24 24"><use href="#i-chev"/></svg><svg viewBox="0 0 24 24"><use href="#i-fuse"/></svg></span>
+        <span class="a-note">选择融合词条 · 反查所有配方</span>
+      </button>
+      <button class="action" data-panel="mech">
+        <span class="a-cap">资料</span>
+        <span class="a-art"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></span>
+        <span class="a-note">新机制介绍</span>
+      </button>
+      <button class="action" data-panel="rules">
+        <span class="a-cap">资料</span>
+        <span class="a-art"><svg viewBox="0 0 24 24"><use href="#i-rules"/></svg></span>
+        <span class="a-note">核心规则 5 条</span>
+      </button>
+      <button class="action" data-coach>
+        <span class="a-cap">教程</span>
+        <span class="a-art"><svg viewBox="0 0 24 24"><use href="#i-route"/></svg></span>
+        <span class="a-note">快速上手</span>
+      </button>
+    </div>
+
+    <div class="totals">
+      <span class="totals-line">
+        <span class="tl">总计</span><b id="tTotal">22</b>
+        <span class="tl">显示</span><b id="tShow">22</b>
+        <span class="tl">已选</span><b id="tPick">0</b><span class="tl" id="tPickSlash">/</span><b id="tPickMax">2</b>
+      </span>
+      <svg class="totals-caret" viewBox="0 0 24 24"><use href="#i-caret"/></svg>
+    </div>
+  </section>
+
+  <div class="seam"><span id="seamLabel">裂罅词条</span></div>
+
+  <section class="filterbar">
+    <label class="search">
+      <input id="searchInput" type="search" placeholder="搜寻…" autocomplete="off" spellcheck="false" aria-label="搜寻词条">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>
+    </label>
+
+    <div class="cat-icons" id="catIcons" role="group" aria-label="词条类别过滤">
+      <button class="ci on" data-group="all" title="全部类别" aria-label="全部类别" aria-pressed="true"><svg viewBox="0 0 24 24"><use href="#i-grid"/></svg></button>
+      <button class="ci" data-group="element" title="元素" aria-label="元素" aria-pressed="false"><svg viewBox="0 0 24 24"><use href="#i-element"/></svg></button>
+      <button class="ci" data-group="faction" title="阵营" aria-label="阵营" aria-pressed="false"><svg viewBox="0 0 24 24"><use href="#i-faction"/></svg></button>
+      <button class="ci" data-group="gun" title="枪械" aria-label="枪械" aria-pressed="false"><svg viewBox="0 0 24 24"><use href="#i-gun"/></svg></button>
+      <button class="ci" data-group="melee" title="近战" aria-label="近战" aria-pressed="false"><svg viewBox="0 0 24 24"><use href="#i-blade"/></svg></button>
+      <span class="ci-legend" id="ciLegend">全部</span>
+    </div>
+
+    <label class="picker">
+      <span class="picker-cap">武器类型</span>
+      <span class="picker-field">
+        <select id="wpSelect" aria-label="武器类型">
+          <option value="all">全部武器</option>
+          <option value="gun">枪械</option>
+          <option value="melee">近战</option>
+        </select>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-caret"/></svg>
+      </span>
+    </label>
+  </section>
+
+  <!-- 主区：左 = 浏览/搜索/筛选/选择；右 = 大型 Preview = 查询结果 -->
+  <main class="body">
+    <div class="grid-wrap">
+      <div class="mod-grid" id="modGrid" role="listbox" aria-label="裂罅词条" aria-multiselectable="true"></div>
+      <p class="grid-empty" id="gridEmpty" hidden>没有匹配的词条 —— 换个关键词，或切回「全部类别」。</p>
+    </div>
+    <aside class="result-col">
+      <div class="result" id="resultPane" aria-live="polite" aria-label="查询结果"></div>
+      <!-- 熔接是「这张结果卡」的唯一操作：贴在卡片正下方并水平居中 -->
+      <div class="result-actions">
+        <button class="fuse-btn" id="fuseBtn" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fuse"/></svg>
+          <span id="fuseLabel">熔接</span>
+          <span class="fb-key"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-enter"/></svg></span>
+        </button>
+        <span class="fuse-hint" id="fuseHint" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-scan"/></svg>反查 · 选中目标即时出结果
+        </span>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="bottombar">
+    <div class="status">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg>
+      <span id="statusText">就绪 · 选择词条开始查询</span>
+      <span class="status-hint" id="statusHint" hidden>点击词条右上角 ＋ / − 切换极性</span>
+    </div>
+    <button class="clear-btn" id="clearBtn">清空选择</button>
+  </footer>
+</div>
+
+
+<!-- ============================================================
+     快速上手（首次使用教程）
+     叠加在真实界面上：四片压暗遮罩 + 挖空高亮圈 + 小型说明框。
+     遮罩只挡住高亮区以外的地方，高亮目标本身仍然是真实可点的元素。
+     ============================================================ -->
+<div class="coach" id="coach" hidden>
+  <div class="coach-mask" id="coachMask" aria-hidden="true">
+    <i class="cm cm-t"></i><i class="cm cm-b"></i><i class="cm cm-l"></i><i class="cm cm-r"></i>
+  </div>
+  <div class="coach-ring off" id="coachRing" aria-hidden="true"></div>
+  <div class="coach-ring2 off" id="coachRing2" aria-hidden="true"></div>
+  <div class="coach-card" id="coachCard" role="dialog" aria-label="快速上手">
+    <span class="coach-arrow" id="coachArrow" aria-hidden="true"></span>
+    <div class="coach-step" id="coachStep"></div>
+    <h3 class="coach-title" id="coachTitle"></h3>
+    <div class="coach-body" id="coachBody"></div>
+    <div class="coach-foot">
+      <button class="coach-skip" id="coachSkip">跳过</button>
+      <div class="coach-acts">
+        <button class="coach-link" id="coachGuide" hidden>洗卡策略 →</button>
+        <button class="coach-next" id="coachNext">开始</button>
+      </div>
     </div>
   </div>
-</nav>
+</div>
 
-<!-- ============ HERO ============ -->
-<header class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-inner">
-    <div class="badge-line">
-      <span class="badge b-purple">《Narin 的冰刃》</span>
-      <span class="badge b-cyan">《冰川反抗》</span>
-    </div>
-    <h1 class="hero-title">裂罅熔接计算器</h1>
-    <p class="hero-sub">选两个词条，一键算出熔接结果——<br>官方完整熔接表 + 新机制全解 + 洗卡收益最大化教程</p>
-    <div class="hero-cta">
-      <a href="#calc" class="btn btn-primary">开始计算</a>
-      <a href="#tutorial" class="btn btn-ghost">先看教程</a>
-    </div>
+<!-- 资料覆盖层（机制 / 规则 / 洗卡教程） -->
+<div class="overlay" id="overlay" hidden>
+  <div class="overlay-box" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <header class="ov-head">
+      <span class="ov-cap" id="ovCap">资料</span>
+      <h2 class="ov-title" id="ovTitle"></h2>
+      <button class="ov-close" id="ovClose" aria-label="关闭"><svg viewBox="0 0 24 24"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="ov-body" id="ovBody"></div>
+    <footer class="ov-foot" id="ovFoot"></footer>
   </div>
-  <div class="scroll-hint">↓</div>
-</header>
+</div>
 
-<!-- ============ CALCULATOR ============ -->
-<section id="calc" class="section reveal">
-  <h2 class="sec-title">熔接计算器</h2>
-  <p class="sec-desc">双模式：<strong>正向</strong>选两个词条算熔接结果，<strong>反向</strong>输入融合属性查需要什么词条。熔接只吃<strong>两条</strong>词条，产出<strong>一条融合词条</strong>。</p>
-
-  <div class="calc-card">
-    <div class="mode-row">
-      <button class="mode-btn on" data-mode="fwd">⚗️ 正向熔接</button>
-      <button class="mode-btn" data-mode="rev">🔎 反向查询</button>
-      <span class="mode-note" id="modeNote">选词条 → 算熔接结果</span>
-    </div>
-
-    <div class="weapon-row">
-      <span class="wp-label">武器类型</span>
-      <div class="wp-toggle" id="wpToggle">
-        <button class="wp-btn on" data-wp="all">全部</button>
-        <button class="wp-btn" data-wp="gun">枪械</button>
-        <button class="wp-btn" data-wp="melee">近战</button>
-      </div>
-      <span class="wp-note">按武器类型过滤可用词条</span>
-    </div>
-
-    <div class="calc-layout">
-      <!-- 左：选词条 + 已选 -->
-      <div class="calc-col">
-        <div class="calc-step">
-          <span class="step-num">1</span>
-          <div>
-            <h3 id="step1Title">选择词条</h3>
-            <p class="hint" id="step1Hint">点击选择第 1 条词条</p>
-          </div>
-        </div>
-        <div id="statPalette" class="palette"></div>
-
-        <div id="fwdOnly">
-        <div class="calc-step">
-          <span class="step-num">2</span>
-          <div>
-            <h3>已选词条（标正负）</h3>
-            <p class="hint">点 + / − 切换极性，点 ✕ 移除</p>
-          </div>
-        </div>
-        <div id="myRiven" class="riven-strip">
-          <span class="empty-tip">尚未选择词条</span>
-        </div>
-        </div>
-      </div>
-
-      <!-- 中：熔接按钮 -->
-      <div class="calc-mid">
-        <button id="fuseBtn" class="fuse-btn" disabled>⚗️<br>熔接</button>
-      </div>
-
-      <!-- 右：熔接结果 -->
-      <div class="calc-col">
-        <div class="calc-step">
-          <span class="step-num">3</span>
-          <div>
-            <h3>熔接结果</h3>
-            <p class="hint">选好 2 条词条后，点击「熔接」</p>
-          </div>
-        </div>
-        <div id="resultPanel" class="result-panel">
-          <span class="empty-tip">选择 2 条词条后，点击左侧「熔接」按钮查看结果</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ MECHANISM ============ -->
-<section id="mech" class="section reveal">
-  <h2 class="sec-title">新机制介绍</h2>
-  <p class="sec-desc">紫卡（裂罅 Mod）2016 年推出，近十年后迎来两项重大新功能。</p>
-
-  <div class="mech-grid">
-    <div class="mech-card">
-      <div class="mech-head">
-        <span class="mech-icon">🔒</span>
-        <div>
-          <h3>属性锁定</h3>
-          <span class="pill pill-green">已随《Narin 的冰刃》上线</span>
-        </div>
-      </div>
-      <p>循环裂罅时<strong>锁定 1 条属性</strong>，它在循环中永不改变——这是玩家呼吁多年的功能。</p>
-      <ul>
-        <li>一次<strong>只能锁 1 条</strong>，锁哪条自己选</li>
-        <li>锁定 / 解锁<strong>完全免费</strong></li>
-        <li>但<strong>带锁循环时赤毒消耗翻倍</strong></li>
-        <li><span class="warn">关掉界面即失效</span>，每次要重新锁</li>
-        <li>锁定时<strong>属性数量被冻结</strong>（3正1负永远是3正1负）</li>
-      </ul>
-    </div>
-
-    <div class="mech-card">
-      <div class="mech-head">
-        <span class="mech-icon">⚗️</span>
-        <div>
-          <h3>裂罅熔接</h3>
-          <span class="pill pill-purple">随《冰川反抗》稍后上线</span>
-        </div>
-      </div>
-      <p>用「裂罅熔接器」把紫卡上<strong>两条词条熔成 1 条融合词条</strong>，创造出洗不出来的新词条。</p>
-      <ul>
-        <li>组合<strong>预先设定、固定不变</strong>，熔接前必能预览结果</li>
-        <li>极性规则：一正一负 → 融合词条<b>负面</b>；两正 → 融合词条<b>正面</b>；再随机补一条<b>正面</b>词条</li>
-        <li>融合词条<strong>默认锁定</strong>，但不占用手动锁名额</li>
-        <li>融合后仍可<strong>再手动锁 1 条</strong> → 一张卡可锁 2 词条</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<!-- ============ CORE RULES ============ -->
-<section id="core" class="section reveal">
-  <h2 class="sec-title">核心机制规则</h2>
-  <p class="sec-desc">决定"怎么洗才划算"的五条硬规则。</p>
-
-  <div class="rule-list">
-    <div class="rule-item">
-      <div class="rule-num">01</div>
-      <div>
-        <h3>熔接后：2 条 → 1 条融合 + 1 条随机</h3>
-        <p>参与组合的两条属性被消耗，取而代之的是<strong>融合词条</strong> + 随机补充的<strong>一条正面词条</strong>。极性：<strong>一正一负 → 融合词条为负</strong>；<strong>两正 → 融合词条为正</strong>。</p>
-      </div>
-    </div>
-    <div class="rule-item">
-      <div class="rule-num">02</div>
-      <div>
-        <h3>融合词条默认锁定，且不算"手动锁定"</h3>
-        <p>融合词条附着后<strong>自动锁定、永不掉</strong>（可主动移除后重熔），却<strong>不让赤毒消耗翻倍</strong>——这是白赚的一条锁。</p>
-      </div>
-    </div>
-    <div class="rule-item">
-      <div class="rule-num">03</div>
-      <div>
-        <h3>融合后可锁 2 词条</h3>
-        <p>融合词条（自动锁）+ 你再手动锁 1 条 = <strong>一张卡洗点时同时锁住 2 条</strong>，把最后 1–2 条洗到完美。</p>
-      </div>
-    </div>
-    <div class="rule-item">
-      <div class="rule-num">04</div>
-      <div>
-        <h3>熔接器：6 人高难本，一周 3 次</h3>
-        <p>裂罅熔接器仅产自新<strong>6 人高难本</strong>，<strong>每周只能刷 3 次</strong>，难度较高——极度稀缺，只投你真正要毕业的武器。</p>
-      </div>
-    </div>
-    <div class="rule-item">
-      <div class="rule-num">05</div>
-      <div>
-        <h3>融合词条洗不出来，只能熔</h3>
-        <p>循环（洗卡）<strong>只能出基础词条</strong>；融合词条不在循环池里。这也是它稀缺、值钱的原因。</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="note-card">
-    <h3>⚠️ 熔接器一周只有 3 次机会，别浪费</h3>
-    <p>每次熔接前必能预览结果，所以动手前<strong>先用上面的计算器算清楚</strong>：哪两条熔、熔出什么、极性是正是负，确认了再花熔接器。</p>
-  </div>
-</section>
-
-<!-- ============ TUTORIAL ============ -->
-<section id="tutorial" class="section reveal">
-  <h2 class="sec-title">洗卡教程 · 收益最大化</h2>
-  <p class="sec-desc">跟着 5 步走，用最少赤毒洗出最想要的卡。</p>
-
-  <div class="tutorial-box">
-    <div class="tut-progress"><div id="tutBar" class="tut-bar"></div></div>
-    <div class="tut-dots" id="tutDots"></div>
-
-    <div id="tutCard" class="tut-card">
-      <div class="tut-step-label" id="tutLabel">步骤 1 / 5</div>
-      <h3 id="tutTitle"></h3>
-      <p id="tutBody"></p>
-      <div id="tutTip" class="tut-tip"></div>
-    </div>
-
-    <div class="tut-controls">
-      <button id="tutPrev" class="btn btn-ghost">← 上一步</button>
-      <button id="tutNext" class="btn btn-primary">下一步 →</button>
-    </div>
-  </div>
-</section>
-
-<footer class="footer">
-  <p>数据源：B 站开发者工坊《Narin 的冰刃》官方文章 · Warframe 官方论坛 Devshorts #115/#116 · 官方熔接表（所有武器 / 枪械 / 近战）· 中文维基 / 社区交叉验证</p>
-  <p class="foot-dim">开发者工坊内容在正式上线前仍可能调整（官方声明 subject to change），请以游戏内实装为准。</p>
-</footer>
-
-<script src="gsap.min.js?v=20260924d"></script>
-<script src="app.js?v=20260924d"></script>
+<script src="gsap.min.js?v=20260930c"></script>
+<script src="app.js?v=20260930c"></script>
 </body>
 </html>
