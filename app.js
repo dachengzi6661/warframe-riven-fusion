@@ -21,12 +21,13 @@ const STATS = [
   { id:'dmg',      name:'伤害',            em:'💥', cat:'gun' },
   { id:'zoom',     name:'变焦',            em:'🔍', cat:'gun' },
   { id:'ms',       name:'多重射击',        em:'🔫', cat:'gun' },
-  { id:'sc',       name:'触发几率',        em:'🎯', cat:'gun' },
   { id:'cc',       name:'暴击几率',        em:'🎲', cat:'gun' },
   { id:'mag',      name:'弹匣容量',        em:'📦', cat:'gun' },
   { id:'reload',   name:'装填速度',        em:'🔄', cat:'gun' },
   { id:'ammo',     name:'弹药最大值',      em:'🧰', cat:'gun' },
   { id:'recoil',   name:'武器后坐力',      em:'🔩', cat:'gun' },
+  // 枪械 + 近战共用
+  { id:'sc',       name:'触发几率',        em:'🎯', cat:['gun','melee'] },
   // 近战
   { id:'mdmg',     name:'近战伤害',        em:'⚔️', cat:'melee' },
   { id:'as',       name:'攻击速度',        em:'🗡️', cat:'melee' },
@@ -63,7 +64,13 @@ const FUSIONS = [
   { a:'heavy', b:'ctime',  out:'重击准备速度', em:'⚡', cat:'melee' },
   { a:'as',    b:'range',  out:'格挡角度',     em:'🛡️', cat:'melee' },
   { a:'as',    b:'mdmg',   out:'震地伤害',     em:'🌏', cat:'melee' },
+  { a:'mdmg',  b:'sc',     out:'异常状态伤害', em:'🩸', cat:'melee' },
 ];
+
+/* cat 规范化：数据里单值仍可写字符串，运行时一律是数组。
+   这样只有真正「共用」的条目需要写数组，其余 43 条字面量一字不动。 */
+STATS.forEach(s  => { if (!Array.isArray(s.cat)) s.cat  = [s.cat]; });
+FUSIONS.forEach(f => { if (!Array.isArray(f.cat)) f.cat = [f.cat]; });
 
 const CAT_NAME = { all:'所有武器', gun:'枪械', melee:'近战' };
 
@@ -76,13 +83,13 @@ let selectedOut = null;     // 反向模式：当前选中的融合属性名
 const statById = id => STATS.find(s => s.id === id);
 
 /* 当前武器类型下，某条熔接组合是否适用 */
-function catAllowed(fcat){
-  return weaponCat === 'all' ? true : (fcat === weaponCat || fcat === 'all');
+/* 适用范围是数组：all=通用 / gun=枪械 / melee=近战 / ['gun','melee']=共用。
+   weaponCat=all → 全可见；gun → 通用+枪械+共用；melee → 通用+近战+共用 */
+function catAllowed(cat){
+  return weaponCat === 'all' || cat.indexOf('all') >= 0 || cat.indexOf(weaponCat) >= 0;
 }
 /* 当前武器类型下，某词条是否出现在面板 */
-function statVisible(s){
-  return weaponCat === 'all' ? true : (s.cat === weaponCat || s.cat === 'all');
-}
+function statVisible(s){ return catAllowed(s.cat); }
 /* 两条词条在当前武器类型下能否熔接 */
 function canFuse(x, y){
   return FUSIONS.some(f =>
@@ -124,18 +131,32 @@ let fused = null;   // { a:{id,pol}, b:{id,pol}, out:fusion|null }
 /* 词条 → 展示分组（UI 派生，不改动业务数据） */
 const ELEMENT_IDS = ['heat','cold','elec','toxin'];
 const FACTION_IDS = ['grineer','corpus','infested'];
-const GROUP_NAME  = { all:'全部', element:'元素', faction:'阵营', gun:'枪械', melee:'近战' };
-const GROUP_ICON  = { all:'#i-grid', element:'#i-element', faction:'#i-faction', gun:'#i-gun', melee:'#i-blade' };
-const CAT_SHORT   = { all:'通用', gun:'枪械', melee:'近战' };
+const GROUP_NAME  = { all:'全部', element:'元素', faction:'阵营', gun:'枪械', melee:'近战', shared:'共用' };
+const GROUP_ICON  = { all:'#i-grid', element:'#i-element', faction:'#i-faction', gun:'#i-gun', melee:'#i-blade', shared:'#i-riven' };
+const CAT_SHORT   = { all:'通用', gun:'枪械', melee:'近战', shared:'共用' };
 
+/* 适用范围 → 显示文案 / 图标。单个范围照旧，多个范围=共用。 */
+function catLabel(c, short){
+  if (c.indexOf('all') >= 0) return short ? '通用' : '所有武器';
+  if (c.length > 1) return short ? CAT_SHORT.shared : '枪械 / 近战';
+  return short ? CAT_SHORT[c[0]] : CAT_NAME[c[0]];
+}
+function groupIcon(g){ return GROUP_ICON[g.length > 1 ? 'shared' : g[0]] || GROUP_ICON.all; }
+function groupName(g){ return g.length > 1 ? GROUP_NAME.shared : (GROUP_NAME[g[0]] || '全部'); }
+
+/* 词条 → 展示分组（返回数组，便于共用参与多个类别过滤） */
 function groupOfStat(id){
-  if (ELEMENT_IDS.indexOf(id) >= 0) return 'element';
-  if (FACTION_IDS.indexOf(id) >= 0) return 'faction';
+  if (ELEMENT_IDS.indexOf(id) >= 0) return ['element'];
+  if (FACTION_IDS.indexOf(id) >= 0) return ['faction'];
   return statById(id).cat;
 }
-function groupOfFusion(f){
-  if (f.cat !== 'all') return f.cat;
-  return ELEMENT_IDS.indexOf(f.a) >= 0 ? 'element' : 'faction';
+/* 一批配方 → 展示分组：纯通用 → 元素/阵营；单范围 → 该范围；跨范围 → 共用 */
+function fusionGroups(list){
+  if (!list.length) return ['gun'];
+  const cats = [];
+  list.forEach(f => f.cat.forEach(c => { if (c !== 'all' && cats.indexOf(c) < 0) cats.push(c); }));
+  if (!cats.length) return [ELEMENT_IDS.indexOf(list[0].a) >= 0 ? 'element' : 'faction'];
+  return cats;
 }
 
 /* 反向模式：可反查的融合属性（沿用老版 renderOutputPalette 的去重口径） */
@@ -145,10 +166,9 @@ function outputList(){
   FUSIONS.forEach(f => {
     if (!catAllowed(f.cat) || seen[f.out]) return;
     seen[f.out] = 1;
-    arr.push({
-      name: f.out, group: groupOfFusion(f), icon: GROUP_ICON[groupOfFusion(f)],
-      count: FUSIONS.filter(g => g.out === f.out && catAllowed(g.cat)).length,
-    });
+    const hits = FUSIONS.filter(g => g.out === f.out && catAllowed(g.cat));
+    const g = fusionGroups(hits);
+    arr.push({ name: f.out, group: g, icon: groupIcon(g), count: hits.length });
   });
   return arr;
 }
@@ -224,21 +244,21 @@ function renderGrid(){
         shown++;
         html += cardHTML({
           kind:'out', key:o.name, name:o.name, icon:o.icon,
-          catTag:(o.group === 'element' ? '元素' : o.group === 'faction' ? '阵营' : (CAT_SHORT[o.group] || '通用')),
+          catTag:groupName(o.group),
           state:(selectedOut === o.name ? 'sel' : ''), pol:'pos', slot:'C',
         });
       });
   } else {
     STATS.filter(s => {
       if (!statVisible(s)) return false;
-      if (ui.group !== 'all' && groupOfStat(s.id) !== ui.group) return false;
-      return matchQuery(s.name + ' ' + s.id + ' ' + CAT_NAME[s.cat]);
+      if (ui.group !== 'all' && groupOfStat(s.id).indexOf(ui.group) < 0) return false;
+      return matchQuery(s.name + ' ' + s.id + ' ' + catLabel(s.cat, false));
     }).forEach(s => {
       shown++;
       const st = statCardState(s);
       html += cardHTML({
         kind:'stat', key:s.id, name:s.name,
-        icon:GROUP_ICON[groupOfStat(s.id)], catTag:CAT_SHORT[s.cat],
+        icon:groupIcon(groupOfStat(s.id)), catTag:catLabel(s.cat, true),
         state:st.state, pol:st.pol, slot:st.slot,
       });
     });
@@ -324,9 +344,9 @@ function renderResult(){
       }) + '<p class="rs-meta">左侧列出当前武器类型下全部可反查的融合词条，<br>选中后立即反查配方。</p>';
     } else {
       const pairs = FUSIONS.filter(f => catAllowed(f.cat) && f.out === selectedOut);
-      const g = pairs.length ? groupOfFusion(pairs[0]) : 'gun';
+      const g = fusionGroups(pairs);
       html = resultCard({
-        kicker:'反查目标', name:selectedOut, icon:GROUP_ICON[g],
+        kicker:'反查目标', name:selectedOut, icon:groupIcon(g),
         polar:'<span style="color:var(--dim)">共 ' + pairs.length + ' 条配方</span>',
         foot:'TARGET · 融合词条',
       });
@@ -338,7 +358,7 @@ function renderResult(){
           const A = statById(f.a), B = statById(f.b);
           return '<div class="rs-recipe"><b>' + A.name + '</b><span class="arw">＋</span><b>' + B.name +
                  '</b><span class="arw">→</span><b>' + f.out + '</b>' +
-                 '<span class="cat">' + CAT_NAME[f.cat] + '</span></div>';
+                 '<span class="cat">' + catLabel(f.cat, false) + '</span></div>';
         }).join('') + '</div>';
       }
     }
@@ -378,12 +398,12 @@ function renderResult(){
     const hasNeg = fused.a.pol === 'neg' || fused.b.pol === 'neg';
     const fusedPol = hasNeg ? 'neg' : 'pos';
     html = resultCard({
-      kicker:'融合词条', name:f.out, icon:GROUP_ICON[groupOfFusion(f)],
+      kicker:'融合词条', name:f.out, icon:groupIcon(fusionGroups([f])),
       polar:'极性 ' + polTxt(fusedPol),
       foot:'✔ 默认锁定 · 不占手动锁名额',
     });
     html += '<p class="rs-meta">' +
-            eq + '<br><span class="arw">→</span> <b>' + f.out + '</b>　<span class="cat">' + CAT_NAME[f.cat] + '</span>' +
+            eq + '<br><span class="arw">→</span> <b>' + f.out + '</b>　<span class="cat">' + catLabel(f.cat, false) + '</span>' +
             '<br><br>熔接后共可锁 <b>2</b> 条</p>';
   }
   applyResult(box, html);
@@ -401,7 +421,16 @@ function renderTotals(){
   if (mx) mx.style.display = calcMode === 'rev' ? 'none' : '';
   const c = $('cStat');   if (c) c.textContent = STATS.length;
   const r = $('cRecipe'); if (r) r.textContent = FUSIONS.length;
-  const o = $('cOut');    if (o) o.textContent = outputList().length;
+  /* 顶部三个计数器都是「数据库总量」，不随 weaponCat 筛选变化。
+     （此前这里用 outputList().length —— 那是按筛选过滤的，会变成 14，已修正为全量去重。）
+     筛选后的数量看总计区的「显示」。 */
+  const o = $('cOut');
+  if (o){
+    const seen = Object.create(null);
+    let n = 0;
+    FUSIONS.forEach(f => { if (!seen[f.out]){ seen[f.out] = 1; n++; } });
+    o.textContent = n;
+  }
 }
 
 function setStatus(text, alert){
@@ -684,7 +713,7 @@ function coachMarkSeen(){
 function coachChip(id){
   const s = statById(id);
   return '<span class="ct"><svg viewBox="0 0 24 24"><use href="' +
-         GROUP_ICON[groupOfStat(id)] + '"/></svg>' + s.name + '</span>';
+         groupIcon(groupOfStat(id)) + '"/></svg>' + s.name + '</span>';
 }
 
 const COACH_TEXT = {
